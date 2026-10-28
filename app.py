@@ -1,12 +1,7 @@
 from flask import Flask, request, render_template_string
-
 app = Flask(__name__)
-
-
 def celsius_to_fahrenheit(celsius):
     return (celsius * 9 / 5) + 32
-
-
 MENU_HTML = """
 <!doctype html>
 <html lang="en">
@@ -35,13 +30,9 @@ MENU_HTML = """
 </body>
 </html>
 """
-
-
 @app.route("/")
 def index():
     return MENU_HTML
-
-
 @app.route("/convert", methods=["POST"])
 def convert():
     temperature = float(request.form["value"])

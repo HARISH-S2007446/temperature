@@ -7,7 +7,11 @@ pipeline{
             }
         }
         stage('Temp'){
-            echo 'Teperature'
+            echo 'Temperature'
         }
-    }
+        stage('Celsius'){
+            steps{
+                echo 'celsius'
+            }
+        }
 }

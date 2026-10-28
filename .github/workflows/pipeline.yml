@@ -1,0 +1,85 @@
+name: Five-Stage Temperature Converter Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  source_code:
+    name: 1. Source Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source files are present
+        run: |
+          test -f app.py
+          test -f requirements.txt
+          test -f Dockerfile
+
+  version_control:
+    name: 2. Version Control
+    needs: source_code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show version control metadata
+        run: |
+          git --no-pager log -1 --oneline
+          git --no-pager status --short
+
+  continuous_integration:
+    name: 3. Continuous Integration
+    needs: version_control
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run automated tests
+        run: pytest -q
+
+  build:
+    name: 4. Build
+    needs: continuous_integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push Docker image
+        env:
+          IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/temperature-converter
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "$IMAGE_NAME:latest" .
+          docker push "$IMAGE_NAME:$IMAGE_TAG"
+          docker push "$IMAGE_NAME:latest"
+  deployment:
+    name: 5. Deployment
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Configure Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      - name: Replace image tag in deployment manifest
+        run: |
+          sed -i "s|__DOCKER_USERNAME__|${{ secrets.DOCKERHUB_USERNAME }}|g" k8s/deployment.yaml
+          sed -i "s|__IMAGE_TAG__|${{ github.sha }}|g" k8s/deployment.yaml
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
