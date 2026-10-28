@@ -10,3 +10,26 @@ spec:
       port: 80
       targetPort: 5000
   type: LoadBalancer
+
+# Temperature Converter
+
+This project implements a Python Temperature Converter using Flask. It follows the five-stage pipeline:
+
+1. Source Code
+2. Version Control
+3. Continuous Integration
+4. Build
+5. Deployment
+
+## Push 1
+- Implements Celsius-to-Fahrenheit conversion.
+- Runs automated tests in GitHub Actions.
+- Builds and pushes a Docker image to Docker Hub using a unique tag.
+- Deploys the image to Kubernetes.
+
+## Run locally
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py

@@ -6,13 +6,5 @@ pipeline{
                 echo 'checkout SCM'
             }
         }
-        stage('Temp'){
-            echo 'Temperature'
-        }
-        stage('Celsius'){
-            steps{
-                echo 'celsius'
-            }
-        }
     }
 }
