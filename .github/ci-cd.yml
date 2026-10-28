@@ -1,0 +1,66 @@
+name: CI/CD Temperature Converter
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: harishs2007446/temperature
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run automated tests
+        run: pytest -q
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        run: |
+          TAG="${GITHUB_SHA::12}"
+          docker build -t $DOCKER_IMAGE:$TAG .
+          docker push $DOCKER_IMAGE:$TAG
+
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure Kubernetes context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          TAG="${GITHUB_SHA::12}"
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl set image deployment/temperature-converter temperature-converter=$DOCKER_IMAGE:$TAG

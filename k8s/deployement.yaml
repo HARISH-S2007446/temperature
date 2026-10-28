@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: temperature-converter
-          image: docker.io/__DOCKER_USERNAME__/temperature-converter:__IMAGE_TAG__
+          image: harishs2007446/temperature:latest
           ports:
             - containerPort: 5000
